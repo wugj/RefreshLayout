@@ -9,6 +9,7 @@ import android.content.res.TypedArray;
 import android.support.v4.view.ViewCompat;
 import android.support.v7.widget.RecyclerView;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
@@ -17,7 +18,11 @@ import android.view.animation.DecelerateInterpolator;
 import android.widget.AbsListView;
 import android.widget.ScrollView;
 
+import com.d.lib.refreshlayout.utils.Util;
+
 import java.lang.ref.WeakReference;
+
+import static android.content.ContentValues.TAG;
 
 /**
  * RefreshLayout
@@ -28,6 +33,10 @@ public class RefreshLayout extends ViewGroup {
     private final static int GRAVITY_BOTTOM = 0x2;
     private final static int GRAVITY_LEFT = 0x4;
     private final static int GRAVITY_RIGHT = 0x8;
+
+    private final static float MIN_FACOTR = 0.15f;
+
+    private int mDragSlop;
 
     private int mWidth;
     private int mHeight;
@@ -53,6 +62,8 @@ public class RefreshLayout extends ViewGroup {
     private int mCurX, mCurY, mDst;
     private boolean mEnable;
     private int mGravity;
+
+    private OnEdgeListener mListener;
 
     static class AnimListenerAdapter extends AnimatorListenerAdapter {
         private final WeakReference<RefreshLayout> reference;
@@ -147,6 +158,9 @@ public class RefreshLayout extends ViewGroup {
     }
 
     private void init(Context context) {
+        mDragSlop = (int) (MIN_FACOTR * context.getResources().getDisplayMetrics().widthPixels);
+
+
         mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
         mAnimation = ValueAnimator.ofFloat(0f, 1f);
         mAnimation.setDuration(mDuration);
@@ -316,12 +330,16 @@ public class RefreshLayout extends ViewGroup {
 
             if (horizontal && gravity == GRAVITY_LEFT && getScrollX() < 0) {
                 scrollTo(0, getScrollY());
+                Log.e("mylog", "moveImpl: left");
             } else if (horizontal && gravity == GRAVITY_RIGHT && getScrollX() > 0) {
                 scrollTo(0, getScrollY());
+                Log.e("mylog", "moveImpl: right");
             } else if (!horizontal && gravity == GRAVITY_TOP && getScrollY() < 0) {
                 scrollTo(getScrollX(), 0);
+                Log.e("mylog", "moveImpl: top");
             } else if (!horizontal && gravity == GRAVITY_BOTTOM && getScrollY() > 0) {
                 scrollTo(getScrollX(), 0);
+                Log.e("mylog", "moveImpl: bottom");
             }
         }
     }
@@ -371,11 +389,26 @@ public class RefreshLayout extends ViewGroup {
         super.dispatchTouchEvent(ev);
     }
 
+    public void setOnEdgeListener(OnEdgeListener mListener) {
+        this.mListener = mListener;
+    }
+
     private void dealUp(boolean horizontal) {
         mCurX = getScrollX();
         mCurY = getScrollY();
         mDst = horizontal ? 1 : -1;
         start();
+        if (mListener != null){
+            if (mCurY == 0 && mCurX > mDragSlop && isGravityEnable(GRAVITY_RIGHT)){
+                mListener.onRight();
+            } else if (mCurY == 0 && mCurX < -mDragSlop && isGravityEnable(GRAVITY_LEFT)) {
+                mListener.onLeft();
+            } else if (mCurY > mDragSlop && mCurX == 0 && isGravityEnable(GRAVITY_TOP)) {
+                mListener.onTop();
+            } else if (mCurY < -mDragSlop && mCurX == 0 && isGravityEnable(GRAVITY_BOTTOM)) {
+                mListener.onBottom();
+            }
+        }
     }
 
     private boolean isGravityEnable(int g) {
@@ -420,5 +453,12 @@ public class RefreshLayout extends ViewGroup {
             mAnimation.cancel();
         }
         mIsRunning = false;
+    }
+
+    public interface OnEdgeListener{
+        void onTop();
+        void onBottom();
+        void onRight();
+        void onLeft();
     }
 }

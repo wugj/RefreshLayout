@@ -31,10 +31,12 @@
     </LinearLayout>
 
     <com.d.lib.refreshlayout.RefreshLayout
+        android:id="@+id/refreshLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:background="@android:color/holo_red_dark"
         app:lib_refresh_refreshlayout_enable="true"
-        app:lib_refresh_refreshlayout_gravity="top|left|right">
+        app:lib_refresh_refreshlayout_gravity="left|right">
 
         <com.d.lib.xrv.LRecyclerView
             android:id="@+id/lrv_list"
